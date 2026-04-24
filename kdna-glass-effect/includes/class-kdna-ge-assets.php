@@ -81,29 +81,62 @@ class KDNA_GE_Assets {
 		if ( ! KDNA_GE_Render::has_rendered() ) {
 			return;
 		}
-		echo self::svg_filter_markup(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static, audited markup with attr-escaped data URL.
+		echo self::svg_filter_markup( KDNA_GE_Render::get_filter_variants() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Audited markup with attr-escaped data URLs.
 	}
 
 	/**
 	 * Build the full <svg>...</svg> filter wrapper as a string.
 	 *
-	 * Shared by the wp_footer emit and by the editor JS helper so the
-	 * two code paths can never drift apart.
+	 * Emits a default filter (#kdna-ge-filter) plus one filter per
+	 * unique (scale, detail) combo recorded by KDNA_GE_Render. The
+	 * per-variant filter IDs follow the pattern
+	 * `kdna-ge-filter-{scale}-{detail*1000}` and are targeted from the
+	 * element's `--kdna-ge-filter-ref` inline style.
 	 *
+	 * Shared by the wp_footer emit and by the editor JS helper so the
+	 * two code paths cannot drift apart.
+	 *
+	 * @param array $variants Variants map from KDNA_GE_Render.
 	 * @return string
 	 */
-	public static function svg_filter_markup() {
-		$data_url = self::displacement_data_url();
-		$filter   = self::FILTER_ID;
+	public static function svg_filter_markup( $variants = array() ) {
+		$svg  = '<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">';
+		$svg .= '<defs>';
 
-		return '<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">'
-			. '<defs>'
-			. '<filter id="' . esc_attr( $filter ) . '" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">'
+		// Default fallback filter, used when no variant has been
+		// registered yet (e.g. editor preview before any glass widget
+		// renders).
+		$svg .= self::single_filter_markup( self::FILTER_ID, 90, 0.02 );
+
+		foreach ( $variants as $id => $variant ) {
+			$filter_id = 'kdna-ge-filter-' . $id;
+			$svg      .= self::single_filter_markup( $filter_id, $variant['scale'], $variant['detail'] );
+		}
+
+		$svg .= '</defs>';
+		$svg .= '</svg>';
+
+		return $svg;
+	}
+
+	/**
+	 * Build a single <filter> element with the given ID, scale, and
+	 * detail (gradient inner-stop position).
+	 *
+	 * @param string $filter_id DOM ID for the filter.
+	 * @param int    $scale     feDisplacementMap scale attribute.
+	 * @param float  $detail    Gradient detail, 0.005..0.1. Higher =
+	 *                          narrower neutral core / sharper rim.
+	 * @return string
+	 */
+	private static function single_filter_markup( $filter_id, $scale, $detail ) {
+		$scale    = max( 0, min( 200, (int) round( $scale ) ) );
+		$data_url = self::displacement_data_url( $detail );
+
+		return '<filter id="' . esc_attr( $filter_id ) . '" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">'
 			. '<feImage href="' . esc_attr( $data_url ) . '" xlink:href="' . esc_attr( $data_url ) . '" result="kdnaGeDisplacement" preserveAspectRatio="none" />'
-			. '<feDisplacementMap in="SourceGraphic" in2="kdnaGeDisplacement" scale="90" xChannelSelector="R" yChannelSelector="G" />'
-			. '</filter>'
-			. '</defs>'
-			. '</svg>';
+			. '<feDisplacementMap in="SourceGraphic" in2="kdnaGeDisplacement" scale="' . esc_attr( (string) $scale ) . '" xChannelSelector="R" yChannelSelector="G" />'
+			. '</filter>';
 	}
 
 	/**
@@ -152,27 +185,26 @@ class KDNA_GE_Assets {
 	 *
 	 * @return string
 	 */
-	public static function displacement_data_url() {
-		// Tuning notes (Session 3 calibration pass):
-		//  - Neutral grey core (rgb 127,127,128) kept flat out to ~55%
-		//    radius so the centre of the glass reads fully clear with no
-		//    distortion, matching the Focus button's transparent middle.
-		//  - Hard transition to rim colours between 55% and 95% so the
-		//    refraction is concentrated on the rim only.
-		//  - Two overlaid radials, one driving R (X axis displacement)
-		//    and one driving G (Y axis), mixed with screen blending so
-		//    the resulting pixel carries both X and Y push outward.
+	public static function displacement_data_url( $detail = 0.02 ) {
+		// Detail (0.005..0.1) maps to the inner-stop position (20..65%).
+		// Higher detail = sharper, more rim-concentrated refraction.
+		$detail = max( 0.005, min( 0.1, (float) $detail ) );
+		$inner  = (int) round( 65 - ( ( $detail - 0.005 ) / 0.095 ) * 45 );
+
+		// Two overlaid radials, one driving R (X axis displacement) and
+		// one driving G (Y axis), screen-blended so each pixel carries
+		// both an X and Y push outward from centre.
 		$svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">'
 			. '<defs>'
 			. '<radialGradient id="kdnaGeRadial" cx="50%" cy="50%" r="55%" fx="50%" fy="50%">'
 			. '<stop offset="0%" stop-color="rgb(127,127,128)" />'
-			. '<stop offset="55%" stop-color="rgb(127,127,128)" />'
+			. '<stop offset="' . $inner . '%" stop-color="rgb(127,127,128)" />'
 			. '<stop offset="95%" stop-color="rgb(235,128,128)" />'
 			. '<stop offset="100%" stop-color="rgb(255,128,128)" />'
 			. '</radialGradient>'
 			. '<radialGradient id="kdnaGeRadialY" cx="50%" cy="50%" r="55%" fx="50%" fy="50%">'
 			. '<stop offset="0%" stop-color="rgb(127,127,128)" />'
-			. '<stop offset="55%" stop-color="rgb(127,127,128)" />'
+			. '<stop offset="' . $inner . '%" stop-color="rgb(127,127,128)" />'
 			. '<stop offset="95%" stop-color="rgb(127,235,128)" />'
 			. '<stop offset="100%" stop-color="rgb(127,255,128)" />'
 			. '</radialGradient>'

@@ -53,7 +53,7 @@ class KDNA_GE_Targets {
 			),
 			'heading'       => array(
 				'label'   => 'Heading',
-				'targets' => array( self::APPLY_TO_HEADING, self::APPLY_TO_WRAPPER ),
+				'targets' => array( self::APPLY_TO_WRAPPER, self::APPLY_TO_HEADING ),
 			),
 			'text-editor'   => array(
 				'label'   => 'Text Editor',

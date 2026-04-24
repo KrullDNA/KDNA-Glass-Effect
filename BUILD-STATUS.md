@@ -304,3 +304,51 @@ Install via **WordPress Admin → Plugins → Add New → Upload Plugin**.
 
 The zip at `dist/kdna-glass-effect.zip` is the deliverable.
 
+---
+
+## Post-Session 3 fixes (from Nick's feedback)
+
+### Issue A: Heading padding doesn't extend the glass area
+
+**Cause.** Heading widget had `Apply To = Text Container` as its default,
+which targets the inline `.elementor-heading-title` element. Padding set
+on the widget pads the wrapper, not the inner span, so the glass surface
+stayed text-width.
+
+**Fix.** Swapped the order of Heading's `targets` array in
+`KDNA_GE_Targets::default_map()` so `wrapper` is listed first and
+therefore becomes the default `Apply To` value. Users who want the
+text-container behaviour can still pick it from the dropdown.
+
+### Issue B: Edge Refraction Amount and Refraction Detail controls did nothing
+
+**Cause.** `feDisplacementMap scale` is an SVG attribute, not a CSS
+property, so a shared filter with a fixed scale cannot be driven by the
+per-widget CSS variable the control was outputting. The brief flagged
+this trade-off; Session 3 initially took the "fixed scale" shortcut,
+which left both controls inert.
+
+**Fix.** Switched to per-variant SVG filters:
+
+- `KDNA_GE_Render` now computes a deterministic variant ID per unique
+  `(scale, detail)` pair (`variant_id()` → e.g. `90-20`, `120-50`) and
+  registers it in a static set.
+- The render path sets `--kdna-ge-filter-ref: url(#kdna-ge-filter-{id})`
+  as an inline style on the target element (both wrapper and inner
+  paths).
+- `KDNA_GE_Assets::svg_filter_markup()` now emits the default filter
+  *plus one filter per registered variant*, each with its own
+  `feDisplacementMap scale` and a displacement gradient whose
+  inner-stop position is driven by the `detail` value (0.005 → 65%
+  soft core, 0.1 → 20% tight core).
+- `assets/css/kdna-glass-effect.css` now uses
+  `backdrop-filter: var(--kdna-ge-filter-ref, url(#kdna-ge-filter))
+  blur(var(--kdna-ge-blur, 8px))` so each widget picks its own variant.
+
+**Performance impact.** Filters are shared across widgets that use the
+same `(scale, detail)` combo, so a page with many glass widgets on
+defaults still emits just one filter. The default shared filter is
+still included as a fallback for the editor-preview boot case.
+
+Zip rebuilt at `dist/kdna-glass-effect.zip` (~21 KB). PHP lint clean.
+
