@@ -30,6 +30,10 @@ class KDNA_GE_Assets {
 		// any point once the rendered flag is set.
 		add_action( 'wp_enqueue_scripts', array( $this, 'register_stylesheet' ), 5 );
 
+		// Diagnostic HTML comment (always emitted) so installers can
+		// confirm the plugin is loading and inspect render state.
+		add_action( 'wp_footer', array( $this, 'diagnostic_comment' ), 4 );
+
 		// Late enqueue: after elements have had a chance to render into
 		// the page, if any glass widget rendered, enqueue the stylesheet.
 		add_action( 'wp_footer', array( $this, 'maybe_enqueue_stylesheet' ), 5 );
@@ -67,6 +71,22 @@ class KDNA_GE_Assets {
 			return;
 		}
 		wp_enqueue_style( self::HANDLE );
+	}
+
+	/**
+	 * Emit a short diagnostic HTML comment into wp_footer every
+	 * request. Helps installers confirm the plugin is actually running
+	 * and see whether any glass widgets flipped the render flag.
+	 */
+	public function diagnostic_comment() {
+		$rendered = KDNA_GE_Render::has_rendered() ? 'yes' : 'no';
+		$variants = KDNA_GE_Render::get_filter_variants();
+		printf(
+			'<!-- KDNA Glass Effect v%s | rendered=%s | variants=%d -->' . "\n",
+			esc_html( KDNA_GE_VERSION ),
+			esc_html( $rendered ),
+			count( $variants )
+		);
 	}
 
 	/**
