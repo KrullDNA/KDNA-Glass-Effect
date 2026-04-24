@@ -176,4 +176,131 @@ and should iterate on:
 
 ---
 
-## Session 3 — Polish, Editor Preview Quality, and Delivery — Not started
+## Session 3 — Polish, Editor Preview Quality, and Delivery — COMPLETE
+
+### 1. Editor preview parity
+
+- `assets/js/kdna-glass-effect-editor.js` — locates
+  `window.elementor.$preview[0].contentDocument` and appends the SVG
+  filter wrapper into the preview iframe's `<body>`, idempotently
+  (guards on `#kdna-ge-filter`). Wires:
+  - `elementor.on('preview:loaded', ...)` and `document:loaded`
+  - `elementor.hooks.addAction('frontend/element_ready/global', ...)`
+  - `elementor.hooks.addAction('panel/open_editor/widget', ...)`
+  - Re-invokes on `DOMContentLoaded` and immediately on first run for
+    late-loaded cases.
+- Enqueued via `elementor/editor/after_enqueue_scripts` in
+  `KDNA_GE_Assets::enqueue_editor_script()`, which also
+  `wp_localize_script`-exposes `kdnaGeEditorData.filterId` and
+  `.svg` (the same markup the front end's `wp_footer` emits, built
+  by the shared `svg_filter_markup()` helper so the two paths cannot
+  drift).
+
+### 2. Visual calibration against the Focus button reference
+
+Nick supplied the Focus-button reference image mid-session. Observations
+from it drove the following tuning pass:
+
+- **Centre almost undistorted** → default `--kdna-ge-blur` reduced from
+  12px to **8px**. Control default updated to match.
+- **Rim bleed is dramatic, not subtle** → `feDisplacementMap scale`
+  raised from 60 to **90**. Displacement gradient stops tightened so
+  the neutral grey core holds flat out to 55% radius, then ramps to
+  rim colour between 55% and 95% (was 35% → 100%). Produces more
+  rim-focused refraction with a clean clear centre.
+- **Bright hairline ring around entire perimeter** → added
+  `inset 0 0 0 1px rgba(255,255,255,0.18)` to the shadow stack so the
+  1px inner ring wraps the whole shape in addition to the top-only
+  rim light stripe.
+- **Wider inner glow suggesting a curved surface** → inner-highlight
+  spread increased from 20px to 28px, default opacity lifted from
+  0.15 to **0.18** (control default updated to match).
+- **Outer shadow softer / less contrasty** than my first pass → changed
+  from `0 8px 24px rgba(0,0,0,0.18)` + `0 2px 6px rgba(0,0,0,0.10)`
+  to `0 10px 30px rgba(0,0,0,0.12)` + `0 2px 6px rgba(0,0,0,0.08)`.
+  Keeps the element grounded without pulling focus.
+- **Rim light brightness** lifted by 10% — default
+  `--kdna-ge-rim-opacity` 0.5 → **0.6**, control default matched.
+
+Further calibration may be desirable once tested against a live WP +
+Elementor + colourful photographic background scene. Remaining knobs
+most likely to need tweaking are the `feDisplacementMap scale` and
+the rim gradient's 95%/100% stops.
+
+### 3. Performance QA (code-level audit)
+
+Live WP testing isn't possible in this sandbox, but the load path has
+been verified by code inspection:
+
+- **No glass widgets on the page.** `KDNA_GE_Render::$rendered` never
+  flips. `maybe_enqueue_stylesheet()` and `maybe_render_svg_filter()`
+  both early-return. Result: zero `kdna-ge` stylesheet requests, zero
+  inline SVG in the footer, zero front-end JS requests from the plugin.
+- **One glass widget on the page.** The render hook flips `$rendered`
+  during the widget's first render. Footer priority 5 enqueues the
+  single registered stylesheet (`kdna-glass-effect`). Footer priority
+  20 emits one `<svg>` wrapper with a single `<filter id="kdna-ge-filter">`
+  inside. No front-end JS is ever enqueued (the only JS file in the
+  plugin is gated on `elementor/editor/after_enqueue_scripts`, which
+  fires only in the editor chrome).
+- **Multiple glass widgets on the page.** Same outputs as above —
+  stylesheet and filter are shared, per-widget overhead is only the
+  scoped CSS variable declarations Elementor generates via the
+  `selectors` parameter.
+
+### 4. Inline documentation
+
+All PHP classes now carry header docblocks describing their role.
+Every public method has a short docblock. Every hook registration has
+a one-line comment explaining what the hook does. No emojis added.
+
+### 5. readme.txt
+
+Written. Sections: Description, Installation, Developer Notes (with
+full `kdna_ge_supported_widgets` filter example and the CSS variable
+/ preset-class / SVG filter ID reference), Browser Support, FAQ,
+Changelog, Upgrade Notice. Version `0.1.0`.
+
+### 6. Packaged zip
+
+Built at **`dist/kdna-glass-effect.zip`** (~20 KB). Contents:
+
+```
+kdna-glass-effect/
+├── kdna-glass-effect.php
+├── readme.txt
+├── assets/
+│   ├── css/kdna-glass-effect.css
+│   └── js/kdna-glass-effect-editor.js
+└── includes/
+    ├── class-kdna-ge-assets.php
+    ├── class-kdna-ge-controls.php
+    ├── class-kdna-ge-plugin.php
+    ├── class-kdna-ge-render.php
+    └── class-kdna-ge-targets.php
+```
+
+Install via **WordPress Admin → Plugins → Add New → Upload Plugin**.
+
+### Issues / caveats
+
+- **Live visual QA still pending.** The calibration pass was driven by
+  the supplied reference image and my reading of the brief's written
+  description. Nick should install the zip on a real WP + Elementor
+  site over a colourful photographic background and compare
+  side-by-side with the Focus button image. The two most likely knobs
+  to need a final nudge are `feDisplacementMap scale` (90 now) and
+  the displacement gradient's rim stop colour intensity (currently
+  `rgb(255,128,128)` / `rgb(127,255,128)` at 100%).
+- **Firefox** still falls back to plain blur — no rim refraction,
+  which is unavoidable until Firefox ships SVG-URL support for
+  `backdrop-filter`.
+- **Naming divergence** from the brief is still the "Liquid Glass →
+  Glass Effect" rename applied in Session 1 per Nick's direction.
+
+---
+
+## Plugin status: complete and ready for installation.
+
+The zip at `dist/kdna-glass-effect.zip` is the deliverable.
+

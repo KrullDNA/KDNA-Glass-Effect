@@ -242,7 +242,7 @@ class KDNA_GE_Controls {
 				),
 				'default'   => array(
 					'unit' => 'px',
-					'size' => 12,
+					'size' => 8,
 				),
 				'selectors' => $this->build_selectors(
 					$selector_map,
@@ -327,7 +327,7 @@ class KDNA_GE_Controls {
 			array(
 				'label'     => __( 'Rim Light Colour', 'kdna-glass-effect' ),
 				'type'      => Controls_Manager::COLOR,
-				'default'   => 'rgba(255,255,255,0.5)',
+				'default'   => 'rgba(255,255,255,0.6)',
 				'selectors' => $this->build_selectors(
 					$selector_map,
 					$state_suffix,
@@ -348,7 +348,7 @@ class KDNA_GE_Controls {
 				),
 				'default'   => array(
 					'unit' => 'px',
-					'size' => 0.5,
+					'size' => 0.6,
 				),
 				'selectors' => $this->build_selectors(
 					$selector_map,
@@ -365,7 +365,7 @@ class KDNA_GE_Controls {
 			array(
 				'label'     => __( 'Inner Highlight Colour', 'kdna-glass-effect' ),
 				'type'      => Controls_Manager::COLOR,
-				'default'   => 'rgba(255,255,255,0.15)',
+				'default'   => 'rgba(255,255,255,0.18)',
 				'selectors' => $this->build_selectors(
 					$selector_map,
 					$state_suffix,
@@ -386,7 +386,7 @@ class KDNA_GE_Controls {
 				),
 				'default'   => array(
 					'unit' => 'px',
-					'size' => 0.15,
+					'size' => 0.18,
 				),
 				'selectors' => $this->build_selectors(
 					$selector_map,
