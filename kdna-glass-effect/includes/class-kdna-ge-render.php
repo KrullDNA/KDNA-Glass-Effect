@@ -180,9 +180,10 @@ class KDNA_GE_Render {
 		$variant_id = $this->register_variant( $settings['scale'], $settings['detail'] );
 		$style_frag = '--kdna-ge-filter-ref:url(#kdna-ge-filter-' . $variant_id . ');';
 
-		// Append our classes to the first class attribute that already
-		// contains the target class.
-		$pattern = '/(<[^>]*?class\s*=\s*["\'][^"\']*?\b' . preg_quote( $inner_class, '/' ) . '\b)([^"\']*["\'])([^>]*)>/';
+		// Match the target class with boundaries that treat hyphens as
+		// class-name characters, so `elementor-button` does not match
+		// inside `elementor-button-wrapper` or `elementor-button-link`.
+		$pattern = '/(<[^>]*?class\s*=\s*["\'][^"\']*?(?<![\w-])' . preg_quote( $inner_class, '/' ) . '(?![\w-]))([^"\']*["\'])([^>]*)>/';
 
 		$modified = preg_replace_callback(
 			$pattern,
