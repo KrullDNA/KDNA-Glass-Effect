@@ -140,11 +140,13 @@ class KDNA_GE_Assets {
 		// Default fallback filter, used when no variant has been
 		// registered yet (e.g. editor preview before any glass widget
 		// renders).
-		$svg .= self::single_filter_markup( self::FILTER_ID, 90, 0.02 );
+		$svg .= self::single_filter_markup( self::FILTER_ID, 90, 45, 'outward' );
 
 		foreach ( $variants as $id => $variant ) {
 			$filter_id = 'kdna-ge-filter-' . $id;
-			$svg      .= self::single_filter_markup( $filter_id, $variant['scale'], $variant['detail'] );
+			$mode      = isset( $variant['mode'] ) ? $variant['mode'] : 'outward';
+			$width     = isset( $variant['width'] ) ? $variant['width'] : 45;
+			$svg      .= self::single_filter_markup( $filter_id, $variant['scale'], $width, $mode );
 		}
 
 		$svg .= '</defs>';
@@ -154,18 +156,23 @@ class KDNA_GE_Assets {
 	}
 
 	/**
-	 * Build a single <filter> element with the given ID, scale, and
-	 * detail (gradient inner-stop position).
+	 * Build a single <filter> element with the given ID, scale, width,
+	 * and mode. Mode determines the gradient direction:
+	 *  - 'outward' : rim pushes content away from centre (default).
+	 *  - 'inward'  : rim pulls content toward centre (lens effect).
+	 *  - 'dual'    : outward near the rim, neutral mid-band, inward
+	 *                just inside the band, with smooth fades — the
+	 *                caustic liquid-glass look.
 	 *
 	 * @param string $filter_id DOM ID for the filter.
 	 * @param int    $scale     feDisplacementMap scale attribute.
-	 * @param float  $detail    Gradient detail, 0.005..0.1. Higher =
-	 *                          narrower neutral core / sharper rim.
+	 * @param float  $width     Refraction band width percentage (0..100).
+	 * @param string $mode      'outward' | 'inward' | 'dual'.
 	 * @return string
 	 */
-	private static function single_filter_markup( $filter_id, $scale, $detail ) {
+	private static function single_filter_markup( $filter_id, $scale, $width, $mode ) {
 		$scale    = max( 0, min( 200, (int) round( $scale ) ) );
-		$data_url = self::displacement_data_url( $detail );
+		$data_url = self::displacement_data_url( $width, $mode );
 
 		return '<filter id="' . esc_attr( $filter_id ) . '" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">'
 			. '<feImage href="' . esc_attr( $data_url ) . '" xlink:href="' . esc_attr( $data_url ) . '" result="kdnaGeDisplacement" preserveAspectRatio="none" />'
@@ -219,29 +226,54 @@ class KDNA_GE_Assets {
 	 *
 	 * @return string
 	 */
-	public static function displacement_data_url( $detail = 0.02 ) {
-		// Detail (0.005..0.1) maps to the inner-stop position (20..65%).
-		// Higher detail = sharper, more rim-concentrated refraction.
-		$detail = max( 0.005, min( 0.1, (float) $detail ) );
-		$inner  = (int) round( 65 - ( ( $detail - 0.005 ) / 0.095 ) * 45 );
+	public static function displacement_data_url( $width = 45, $mode = 'outward' ) {
+		// Band spans from (100 - width)% out to 100% radius.
+		$width = max( 0, min( 100, (float) $width ) );
+		$inner = (int) round( max( 0, 100 - $width ) ); // inner edge of band
+		$mid   = (int) round( $inner + ( $width * 0.55 ) ); // neutral midband for dual mode
 
-		// Two overlaid radials, one driving R (X axis displacement) and
-		// one driving G (Y axis), screen-blended so each pixel carries
-		// both an X and Y push outward from centre.
+		// Outward mode: peak at rim pulls toward +R/+G (push away from
+		// centre). Inward mode: peak at rim pulls toward 0/0 (pull
+		// from outside into rim). Dual mode: outward near rim with a
+		// neutral fade, inward just inside.
+		if ( 'inward' === $mode ) {
+			$x_stops = '<stop offset="0%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="' . $inner . '%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="95%" stop-color="rgb(20,128,128)" />'
+				. '<stop offset="100%" stop-color="rgb(0,128,128)" />';
+			$y_stops = '<stop offset="0%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="' . $inner . '%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="95%" stop-color="rgb(127,20,128)" />'
+				. '<stop offset="100%" stop-color="rgb(127,0,128)" />';
+		} elseif ( 'dual' === $mode ) {
+			$x_stops = '<stop offset="0%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="' . $inner . '%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="' . ( $inner + 5 ) . '%" stop-color="rgb(40,128,128)" />'
+				. '<stop offset="' . $mid . '%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="95%" stop-color="rgb(235,128,128)" />'
+				. '<stop offset="100%" stop-color="rgb(255,128,128)" />';
+			$y_stops = '<stop offset="0%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="' . $inner . '%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="' . ( $inner + 5 ) . '%" stop-color="rgb(127,40,128)" />'
+				. '<stop offset="' . $mid . '%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="95%" stop-color="rgb(127,235,128)" />'
+				. '<stop offset="100%" stop-color="rgb(127,255,128)" />';
+		} else {
+			// outward
+			$x_stops = '<stop offset="0%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="' . $inner . '%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="95%" stop-color="rgb(235,128,128)" />'
+				. '<stop offset="100%" stop-color="rgb(255,128,128)" />';
+			$y_stops = '<stop offset="0%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="' . $inner . '%" stop-color="rgb(127,127,128)" />'
+				. '<stop offset="95%" stop-color="rgb(127,235,128)" />'
+				. '<stop offset="100%" stop-color="rgb(127,255,128)" />';
+		}
+
 		$svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">'
 			. '<defs>'
-			. '<radialGradient id="kdnaGeRadial" cx="50%" cy="50%" r="55%" fx="50%" fy="50%">'
-			. '<stop offset="0%" stop-color="rgb(127,127,128)" />'
-			. '<stop offset="' . $inner . '%" stop-color="rgb(127,127,128)" />'
-			. '<stop offset="95%" stop-color="rgb(235,128,128)" />'
-			. '<stop offset="100%" stop-color="rgb(255,128,128)" />'
-			. '</radialGradient>'
-			. '<radialGradient id="kdnaGeRadialY" cx="50%" cy="50%" r="55%" fx="50%" fy="50%">'
-			. '<stop offset="0%" stop-color="rgb(127,127,128)" />'
-			. '<stop offset="' . $inner . '%" stop-color="rgb(127,127,128)" />'
-			. '<stop offset="95%" stop-color="rgb(127,235,128)" />'
-			. '<stop offset="100%" stop-color="rgb(127,255,128)" />'
-			. '</radialGradient>'
+			. '<radialGradient id="kdnaGeRadial" cx="50%" cy="50%" r="55%" fx="50%" fy="50%">' . $x_stops . '</radialGradient>'
+			. '<radialGradient id="kdnaGeRadialY" cx="50%" cy="50%" r="55%" fx="50%" fy="50%">' . $y_stops . '</radialGradient>'
 			. '</defs>'
 			. '<rect width="100" height="100" fill="url(#kdnaGeRadial)" />'
 			. '<rect width="100" height="100" fill="url(#kdnaGeRadialY)" style="mix-blend-mode:screen" />'

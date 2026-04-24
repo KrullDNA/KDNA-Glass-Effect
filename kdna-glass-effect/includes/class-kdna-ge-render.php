@@ -89,25 +89,28 @@ class KDNA_GE_Render {
 	 * @param float $detail Gradient detail / inner-stop position.
 	 * @return string
 	 */
-	public static function variant_id( $scale, $detail ) {
-		$scale_i  = max( 0, min( 200, (int) round( $scale ) ) );
-		$detail_i = max( 5, min( 100, (int) round( $detail * 1000 ) ) );
-		return $scale_i . '-' . $detail_i;
+	public static function variant_id( $scale, $width, $mode ) {
+		$scale_i = max( 0, min( 200, (int) round( $scale ) ) );
+		$width_i = max( 0, min( 100, (int) round( $width ) ) );
+		$mode_c  = ( 'inward' === $mode ) ? 'i' : ( ( 'dual' === $mode ) ? 'd' : 'o' );
+		return $scale_i . '-' . $width_i . $mode_c;
 	}
 
 	/**
 	 * Register a variant for later footer emit. Returns the variant ID.
 	 *
-	 * @param int   $scale  feDisplacementMap scale.
-	 * @param float $detail Gradient detail.
+	 * @param int    $scale feDisplacementMap scale.
+	 * @param float  $width Refraction band width (percentage).
+	 * @param string $mode  'outward' | 'inward' | 'dual'.
 	 * @return string
 	 */
-	private function register_variant( $scale, $detail ) {
-		$id = self::variant_id( $scale, $detail );
+	private function register_variant( $scale, $width, $mode ) {
+		$id = self::variant_id( $scale, $width, $mode );
 		if ( ! isset( self::$filter_variants[ $id ] ) ) {
 			self::$filter_variants[ $id ] = array(
-				'scale'  => (int) round( $scale ),
-				'detail' => (float) $detail,
+				'scale' => (int) round( $scale ),
+				'width' => (float) $width,
+				'mode'  => (string) $mode,
 			);
 		}
 		return $id;
@@ -135,7 +138,7 @@ class KDNA_GE_Render {
 		}
 
 		$classes    = $this->classes_for_settings( $settings );
-		$variant_id = $this->register_variant( $settings['scale'], $settings['detail'] );
+		$variant_id = $this->register_variant( $settings['scale'], $settings['width'], $settings['mode'] );
 		$style      = $this->build_inline_style( $settings, $variant_id );
 		$element->add_render_attribute( '_wrapper', 'class', $classes );
 		$element->add_render_attribute( '_wrapper', 'style', $style );
@@ -174,7 +177,7 @@ class KDNA_GE_Render {
 		}
 
 		$added      = implode( ' ', $this->classes_for_settings( $settings ) );
-		$variant_id = $this->register_variant( $settings['scale'], $settings['detail'] );
+		$variant_id = $this->register_variant( $settings['scale'], $settings['width'], $settings['mode'] );
 		$style_frag = $this->build_inline_style( $settings, $variant_id );
 
 		// Match the target class with boundaries that treat hyphens as
@@ -237,8 +240,12 @@ class KDNA_GE_Render {
 			return null;
 		}
 
-		$scale  = isset( $settings['kdna_ge_refraction_scale']['size'] ) ? (float) $settings['kdna_ge_refraction_scale']['size'] : 90.0;
-		$detail = isset( $settings['kdna_ge_refraction_detail']['size'] ) ? (float) $settings['kdna_ge_refraction_detail']['size'] : 0.02;
+		$scale = isset( $settings['kdna_ge_refraction_scale']['size'] ) ? (float) $settings['kdna_ge_refraction_scale']['size'] : 90.0;
+		$width = isset( $settings['kdna_ge_refraction_width']['size'] ) ? (float) $settings['kdna_ge_refraction_width']['size'] : 45.0;
+		$mode  = isset( $settings['kdna_ge_refraction_mode'] ) ? (string) $settings['kdna_ge_refraction_mode'] : 'outward';
+		if ( ! in_array( $mode, array( 'outward', 'inward', 'dual' ), true ) ) {
+			$mode = 'outward';
+		}
 
 		return array(
 			'apply_to' => isset( $settings['kdna_ge_apply_to'] ) ? $settings['kdna_ge_apply_to'] : KDNA_GE_Targets::default_apply_to( $widget_id ),
@@ -246,7 +253,8 @@ class KDNA_GE_Render {
 			'hover'    => ! empty( $settings['kdna_ge_enable_hover'] ) && 'yes' === $settings['kdna_ge_enable_hover'],
 			'active'   => ! empty( $settings['kdna_ge_enable_active'] ) && 'yes' === $settings['kdna_ge_enable_active'],
 			'scale'    => $scale,
-			'detail'   => $detail,
+			'width'    => $width,
+			'mode'     => $mode,
 			'raw'      => $settings,
 		);
 	}
@@ -293,8 +301,19 @@ class KDNA_GE_Render {
 		if ( ! empty( $raw['kdna_ge_border_color'] ) ) {
 			$decls[] = '--kdna-ge-border-color:' . $raw['kdna_ge_border_color'];
 		}
-		if ( isset( $raw['kdna_ge_border_width']['size'] ) ) {
-			$decls[] = '--kdna-ge-border-width:' . (float) $raw['kdna_ge_border_width']['size'] . 'px';
+		// Border width: per-side dimensions (top / right / bottom / left).
+		if ( isset( $raw['kdna_ge_border_width'] ) && is_array( $raw['kdna_ge_border_width'] ) ) {
+			$bw = $raw['kdna_ge_border_width'];
+			if ( isset( $bw['top'], $bw['right'], $bw['bottom'], $bw['left'] ) ) {
+				$unit    = ! empty( $bw['unit'] ) ? $bw['unit'] : 'px';
+				$decls[] = sprintf(
+					'border-width:%s%s %s%s %s%s %s%s',
+					$bw['top'], $unit,
+					$bw['right'], $unit,
+					$bw['bottom'], $unit,
+					$bw['left'], $unit
+				);
+			}
 		}
 		if ( isset( $raw['kdna_ge_transition']['size'] ) ) {
 			$decls[] = '--kdna-ge-transition:' . (float) $raw['kdna_ge_transition']['size'] . 'ms';

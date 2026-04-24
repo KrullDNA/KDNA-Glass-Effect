@@ -275,23 +275,40 @@ class KDNA_GE_Controls {
 			)
 		);
 
-		// Refraction detail.
+		// Refraction width (%) - how far the displacement band extends
+		// in from the edge. 0 = no band (flat centre), 100 = whole
+		// element refracts.
 		$element->add_control(
-			$prefix . 'refraction_detail',
+			$prefix . 'refraction_width',
 			array(
-				'label'     => __( 'Refraction Detail', 'kdna-glass-effect' ),
+				'label'     => __( 'Refraction Width', 'kdna-glass-effect' ),
 				'type'      => Controls_Manager::SLIDER,
 				'range'     => array(
-					'px' => array( 'min' => 0.005, 'max' => 0.1, 'step' => 0.005 ),
+					'px' => array( 'min' => 0, 'max' => 100, 'step' => 1 ),
 				),
 				'default'   => array(
 					'unit' => 'px',
-					'size' => 0.02,
+					'size' => 45,
 				),
-				'selectors' => $this->build_selectors(
-					$selector_map,
-					$state_suffix,
-					'--kdna-ge-refraction-detail: {{SIZE}};'
+				'description' => __( 'How far the edge-refraction band extends inward from the border, as a percentage of the element radius.', 'kdna-glass-effect' ),
+				'condition' => $condition,
+			)
+		);
+
+		// Refraction mode - outward (default, pushes background outward),
+		// inward (pulls background from outside into the rim, giving a
+		// lens effect), or dual (both with a neutral fade between, for
+		// the caustic "liquid glass" look).
+		$element->add_control(
+			$prefix . 'refraction_mode',
+			array(
+				'label'   => __( 'Refraction Mode', 'kdna-glass-effect' ),
+				'type'    => Controls_Manager::SELECT,
+				'default' => 'outward',
+				'options' => array(
+					'outward' => __( 'Outward', 'kdna-glass-effect' ),
+					'inward'  => __( 'Inward (Lens)', 'kdna-glass-effect' ),
+					'dual'    => __( 'Dual (Fade)', 'kdna-glass-effect' ),
 				),
 				'condition' => $condition,
 			)
@@ -413,24 +430,26 @@ class KDNA_GE_Controls {
 			)
 		);
 
-		// Border width (px).
-		$element->add_control(
+		// Border width, responsive per-side dimensions so each edge can
+		// be sized independently (e.g. a thick bottom + thin top rim).
+		$element->add_responsive_control(
 			$prefix . 'border_width',
 			array(
 				'label'      => __( 'Border Width', 'kdna-glass-effect' ),
-				'type'       => Controls_Manager::SLIDER,
+				'type'       => Controls_Manager::DIMENSIONS,
 				'size_units' => array( 'px' ),
-				'range'      => array(
-					'px' => array( 'min' => 0, 'max' => 4, 'step' => 1 ),
-				),
 				'default'    => array(
-					'unit' => 'px',
-					'size' => 1,
+					'unit'     => 'px',
+					'top'      => 1,
+					'right'    => 1,
+					'bottom'   => 1,
+					'left'     => 1,
+					'isLinked' => true,
 				),
 				'selectors'  => $this->build_selectors(
 					$selector_map,
 					$state_suffix,
-					'--kdna-ge-border-width: {{SIZE}}px;'
+					'border-width: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};'
 				),
 				'condition'  => $condition,
 			)
