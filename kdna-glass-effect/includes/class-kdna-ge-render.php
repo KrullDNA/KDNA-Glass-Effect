@@ -293,8 +293,19 @@ class KDNA_GE_Render {
 		if ( ! empty( $raw['kdna_ge_border_color'] ) ) {
 			$decls[] = '--kdna-ge-border-color:' . $raw['kdna_ge_border_color'];
 		}
-		if ( isset( $raw['kdna_ge_border_width']['size'] ) ) {
-			$decls[] = '--kdna-ge-border-width:' . (float) $raw['kdna_ge_border_width']['size'] . 'px';
+		// Border width: per-side dimensions (top / right / bottom / left).
+		if ( isset( $raw['kdna_ge_border_width'] ) && is_array( $raw['kdna_ge_border_width'] ) ) {
+			$bw = $raw['kdna_ge_border_width'];
+			if ( isset( $bw['top'], $bw['right'], $bw['bottom'], $bw['left'] ) ) {
+				$unit    = ! empty( $bw['unit'] ) ? $bw['unit'] : 'px';
+				$decls[] = sprintf(
+					'border-width:%s%s %s%s %s%s %s%s',
+					$bw['top'], $unit,
+					$bw['right'], $unit,
+					$bw['bottom'], $unit,
+					$bw['left'], $unit
+				);
+			}
 		}
 		if ( isset( $raw['kdna_ge_transition']['size'] ) ) {
 			$decls[] = '--kdna-ge-transition:' . (float) $raw['kdna_ge_transition']['size'] . 'ms';
