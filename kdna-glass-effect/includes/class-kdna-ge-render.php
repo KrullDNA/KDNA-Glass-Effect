@@ -36,6 +36,16 @@ class KDNA_GE_Render {
 	private static $rendered = false;
 
 	/**
+	 * Set of refraction variants in use on this page, keyed by a
+	 * deterministic variant ID. Each entry is [ 'scale' => int,
+	 * 'detail' => float ]. Consumed by KDNA_GE_Assets to emit one
+	 * SVG filter per unique combo.
+	 *
+	 * @var array<string, array>
+	 */
+	private static $filter_variants = array();
+
+	/**
 	 * Register Elementor render-side hooks.
 	 */
 	public function register_hooks() {
@@ -60,6 +70,50 @@ class KDNA_GE_Render {
 	}
 
 	/**
+	 * Public accessor for the set of unique refraction variants in
+	 * use on this page. Consumed by KDNA_GE_Assets to emit per-variant
+	 * SVG filters.
+	 *
+	 * @return array<string, array>
+	 */
+	public static function get_filter_variants() {
+		return self::$filter_variants;
+	}
+
+	/**
+	 * Compute a deterministic filter variant ID for a given
+	 * (scale, detail) pair. Same pair always yields the same ID so
+	 * widgets sharing values share a single SVG filter definition.
+	 *
+	 * @param int   $scale  feDisplacementMap scale.
+	 * @param float $detail Gradient detail / inner-stop position.
+	 * @return string
+	 */
+	public static function variant_id( $scale, $detail ) {
+		$scale_i  = max( 0, min( 200, (int) round( $scale ) ) );
+		$detail_i = max( 5, min( 100, (int) round( $detail * 1000 ) ) );
+		return $scale_i . '-' . $detail_i;
+	}
+
+	/**
+	 * Register a variant for later footer emit. Returns the variant ID.
+	 *
+	 * @param int   $scale  feDisplacementMap scale.
+	 * @param float $detail Gradient detail.
+	 * @return string
+	 */
+	private function register_variant( $scale, $detail ) {
+		$id = self::variant_id( $scale, $detail );
+		if ( ! isset( self::$filter_variants[ $id ] ) ) {
+			self::$filter_variants[ $id ] = array(
+				'scale'  => (int) round( $scale ),
+				'detail' => (float) $detail,
+			);
+		}
+		return $id;
+	}
+
+	/**
 	 * Fires before each element renders. Adds the glass classes to the
 	 * widget wrapper when Apply To resolves to the wrapper.
 	 *
@@ -80,8 +134,14 @@ class KDNA_GE_Render {
 			return;
 		}
 
-		$classes = $this->classes_for_settings( $settings );
+		$classes    = $this->classes_for_settings( $settings );
+		$variant_id = $this->register_variant( $settings['scale'], $settings['detail'] );
 		$element->add_render_attribute( '_wrapper', 'class', $classes );
+		$element->add_render_attribute(
+			'_wrapper',
+			'style',
+			'--kdna-ge-filter-ref: url(#kdna-ge-filter-' . $variant_id . ');'
+		);
 	}
 
 	/**
@@ -116,15 +176,42 @@ class KDNA_GE_Render {
 			return $content;
 		}
 
-		$added = implode( ' ', $this->classes_for_settings( $settings ) );
+		$added      = implode( ' ', $this->classes_for_settings( $settings ) );
+		$variant_id = $this->register_variant( $settings['scale'], $settings['detail'] );
+		$style_frag = '--kdna-ge-filter-ref:url(#kdna-ge-filter-' . $variant_id . ');';
 
 		// Append our classes to the first class attribute that already
-		// contains the target class. Regex is anchored to that class
-		// literal to avoid mis-matching other elements.
-		$pattern = '/(class\s*=\s*["\'][^"\']*?\b' . preg_quote( $inner_class, '/' ) . '\b)([^"\']*["\'])/';
-		$replace = '$1 ' . $added . '$2';
+		// contains the target class.
+		$pattern = '/(<[^>]*?class\s*=\s*["\'][^"\']*?\b' . preg_quote( $inner_class, '/' ) . '\b)([^"\']*["\'])([^>]*)>/';
 
-		$modified = preg_replace( $pattern, $replace, $content, 1 );
+		$modified = preg_replace_callback(
+			$pattern,
+			function ( $m ) use ( $added, $style_frag ) {
+				// m[1] = up to and including the target class,
+				// m[2] = remainder of class attribute value,
+				// m[3] = rest of tag attributes before '>'.
+				$class_part = $m[1] . ' ' . $added . $m[2];
+				$rest       = $m[3];
+
+				// Inject the filter-ref into an existing style= attr
+				// if present, otherwise append a new style attribute.
+				if ( preg_match( '/style\s*=\s*(["\'])([^"\']*)\1/', $rest ) ) {
+					$rest = preg_replace(
+						'/(style\s*=\s*(["\']))([^"\']*)(\2)/',
+						'$1$3 ' . $style_frag . '$4',
+						$rest,
+						1
+					);
+				} else {
+					$rest .= ' style="' . $style_frag . '"';
+				}
+
+				return $class_part . $rest . '>';
+			},
+			$content,
+			1
+		);
+
 		return ( null === $modified ) ? $content : $modified;
 	}
 
@@ -152,11 +239,16 @@ class KDNA_GE_Render {
 			return null;
 		}
 
+		$scale  = isset( $settings['kdna_ge_refraction_scale']['size'] ) ? (float) $settings['kdna_ge_refraction_scale']['size'] : 90.0;
+		$detail = isset( $settings['kdna_ge_refraction_detail']['size'] ) ? (float) $settings['kdna_ge_refraction_detail']['size'] : 0.02;
+
 		return array(
 			'apply_to' => isset( $settings['kdna_ge_apply_to'] ) ? $settings['kdna_ge_apply_to'] : KDNA_GE_Targets::default_apply_to( $widget_id ),
 			'preset'   => isset( $settings['kdna_ge_preset'] ) ? $settings['kdna_ge_preset'] : 'custom',
 			'hover'    => ! empty( $settings['kdna_ge_enable_hover'] ) && 'yes' === $settings['kdna_ge_enable_hover'],
 			'active'   => ! empty( $settings['kdna_ge_enable_active'] ) && 'yes' === $settings['kdna_ge_enable_active'],
+			'scale'    => $scale,
+			'detail'   => $detail,
 		);
 	}
 

@@ -25,7 +25,7 @@
 	);
 
 	-webkit-backdrop-filter: blur(var(--kdna-ge-blur, 8px));
-	backdrop-filter: url(#kdna-ge-filter) blur(var(--kdna-ge-blur, 8px));
+	backdrop-filter: var(--kdna-ge-filter-ref, url(#kdna-ge-filter)) blur(var(--kdna-ge-blur, 8px));
 
 	border: var(--kdna-ge-border-width, 1px) solid
 		var(--kdna-ge-border-color, rgba(255, 255, 255, 0.3));
