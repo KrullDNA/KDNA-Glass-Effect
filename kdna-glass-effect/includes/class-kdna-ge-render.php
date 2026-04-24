@@ -241,8 +241,8 @@ class KDNA_GE_Render {
 		}
 
 		$scale = isset( $settings['kdna_ge_refraction_scale']['size'] ) ? (float) $settings['kdna_ge_refraction_scale']['size'] : 90.0;
-		$width = isset( $settings['kdna_ge_refraction_width']['size'] ) ? (float) $settings['kdna_ge_refraction_width']['size'] : 45.0;
-		$mode  = isset( $settings['kdna_ge_refraction_mode'] ) ? (string) $settings['kdna_ge_refraction_mode'] : 'outward';
+		$width = isset( $settings['kdna_ge_refraction_width']['size'] ) ? (float) $settings['kdna_ge_refraction_width']['size'] : 70.0;
+		$mode  = isset( $settings['kdna_ge_refraction_mode'] ) ? (string) $settings['kdna_ge_refraction_mode'] : 'dual';
 		if ( ! in_array( $mode, array( 'outward', 'inward', 'dual' ), true ) ) {
 			$mode = 'outward';
 		}
