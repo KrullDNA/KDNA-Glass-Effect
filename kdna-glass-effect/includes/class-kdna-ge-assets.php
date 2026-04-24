@@ -71,6 +71,20 @@ class KDNA_GE_Assets {
 			return;
 		}
 		wp_enqueue_style( self::HANDLE );
+
+		// Also inline the stylesheet contents directly, so the effect
+		// is not dependent on the external CSS file being reachable
+		// (some server setups block or 404 plugin asset URLs).
+		$css_path = KDNA_GE_DIR . 'assets/css/kdna-glass-effect.css';
+		if ( is_readable( $css_path ) ) {
+			$css = file_get_contents( $css_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			if ( false !== $css ) {
+				printf(
+					"<style id=\"kdna-glass-effect-inline\">\n%s\n</style>\n",
+					$css // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				);
+			}
+		}
 	}
 
 	/**

@@ -136,12 +136,9 @@ class KDNA_GE_Render {
 
 		$classes    = $this->classes_for_settings( $settings );
 		$variant_id = $this->register_variant( $settings['scale'], $settings['detail'] );
+		$style      = $this->build_inline_style( $settings, $variant_id );
 		$element->add_render_attribute( '_wrapper', 'class', $classes );
-		$element->add_render_attribute(
-			'_wrapper',
-			'style',
-			'--kdna-ge-filter-ref: url(#kdna-ge-filter-' . $variant_id . ');'
-		);
+		$element->add_render_attribute( '_wrapper', 'style', $style );
 	}
 
 	/**
@@ -178,7 +175,7 @@ class KDNA_GE_Render {
 
 		$added      = implode( ' ', $this->classes_for_settings( $settings ) );
 		$variant_id = $this->register_variant( $settings['scale'], $settings['detail'] );
-		$style_frag = '--kdna-ge-filter-ref:url(#kdna-ge-filter-' . $variant_id . ');';
+		$style_frag = $this->build_inline_style( $settings, $variant_id );
 
 		// Match the target class with boundaries that treat hyphens as
 		// class-name characters, so `elementor-button` does not match
@@ -250,7 +247,75 @@ class KDNA_GE_Render {
 			'active'   => ! empty( $settings['kdna_ge_enable_active'] ) && 'yes' === $settings['kdna_ge_enable_active'],
 			'scale'    => $scale,
 			'detail'   => $detail,
+			'raw'      => $settings,
 		);
+	}
+
+	/**
+	 * Build a full inline-style declaration string for an element
+	 * with glass enabled. Emits every CSS variable the stylesheet
+	 * consumes (tint, blur, rim, inner, border, transition) plus
+	 * border-radius as a direct property, based on the widget's own
+	 * saved values. Bypasses Elementor's per-widget CSS file cache so
+	 * the effect works on first install without a Regenerate-CSS pass.
+	 *
+	 * @param array  $settings    Resolved glass settings.
+	 * @param string $variant_id  Variant ID for the filter reference.
+	 * @return string CSS declaration list (no surrounding braces).
+	 */
+	private function build_inline_style( $settings, $variant_id ) {
+		$raw = isset( $settings['raw'] ) ? $settings['raw'] : array();
+
+		$decls = array();
+		$decls[] = '--kdna-ge-filter-ref:url(#kdna-ge-filter-' . $variant_id . ')';
+
+		if ( ! empty( $raw['kdna_ge_tint_color'] ) ) {
+			$decls[] = '--kdna-ge-tint-color:' . $raw['kdna_ge_tint_color'];
+		}
+		if ( isset( $raw['kdna_ge_tint_opacity']['size'] ) ) {
+			$decls[] = '--kdna-ge-tint-opacity:' . (float) $raw['kdna_ge_tint_opacity']['size'];
+		}
+		if ( isset( $raw['kdna_ge_blur']['size'] ) ) {
+			$decls[] = '--kdna-ge-blur:' . (float) $raw['kdna_ge_blur']['size'] . 'px';
+		}
+		if ( ! empty( $raw['kdna_ge_rim_color'] ) ) {
+			$decls[] = '--kdna-ge-rim-color:' . $raw['kdna_ge_rim_color'];
+		}
+		if ( isset( $raw['kdna_ge_rim_opacity']['size'] ) ) {
+			$decls[] = '--kdna-ge-rim-opacity:' . (float) $raw['kdna_ge_rim_opacity']['size'];
+		}
+		if ( ! empty( $raw['kdna_ge_inner_color'] ) ) {
+			$decls[] = '--kdna-ge-inner-color:' . $raw['kdna_ge_inner_color'];
+		}
+		if ( isset( $raw['kdna_ge_inner_opacity']['size'] ) ) {
+			$decls[] = '--kdna-ge-inner-opacity:' . (float) $raw['kdna_ge_inner_opacity']['size'];
+		}
+		if ( ! empty( $raw['kdna_ge_border_color'] ) ) {
+			$decls[] = '--kdna-ge-border-color:' . $raw['kdna_ge_border_color'];
+		}
+		if ( isset( $raw['kdna_ge_border_width']['size'] ) ) {
+			$decls[] = '--kdna-ge-border-width:' . (float) $raw['kdna_ge_border_width']['size'] . 'px';
+		}
+		if ( isset( $raw['kdna_ge_transition']['size'] ) ) {
+			$decls[] = '--kdna-ge-transition:' . (float) $raw['kdna_ge_transition']['size'] . 'ms';
+		}
+
+		// Border radius: responsive dimensions, desktop values.
+		if ( isset( $raw['kdna_ge_radius'] ) && is_array( $raw['kdna_ge_radius'] ) ) {
+			$r = $raw['kdna_ge_radius'];
+			if ( isset( $r['top'], $r['right'], $r['bottom'], $r['left'] ) ) {
+				$unit = ! empty( $r['unit'] ) ? $r['unit'] : 'px';
+				$decls[] = sprintf(
+					'border-radius:%s%s %s%s %s%s %s%s',
+					$r['top'], $unit,
+					$r['right'], $unit,
+					$r['bottom'], $unit,
+					$r['left'], $unit
+				);
+			}
+		}
+
+		return implode( ';', $decls ) . ';';
 	}
 
 	/**
