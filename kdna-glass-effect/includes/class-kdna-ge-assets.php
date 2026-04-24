@@ -140,7 +140,7 @@ class KDNA_GE_Assets {
 		// Default fallback filter, used when no variant has been
 		// registered yet (e.g. editor preview before any glass widget
 		// renders).
-		$svg .= self::single_filter_markup( self::FILTER_ID, 90, 45, 'outward' );
+		$svg .= self::single_filter_markup( self::FILTER_ID, 90, 70, 'dual' );
 
 		foreach ( $variants as $id => $variant ) {
 			$filter_id = 'kdna-ge-filter-' . $id;
@@ -226,7 +226,7 @@ class KDNA_GE_Assets {
 	 *
 	 * @return string
 	 */
-	public static function displacement_data_url( $width = 45, $mode = 'outward' ) {
+	public static function displacement_data_url( $width = 70, $mode = 'dual' ) {
 		// Band spans from (100 - width)% out to 100% radius.
 		$width = max( 0, min( 100, (float) $width ) );
 		$inner = (int) round( max( 0, 100 - $width ) ); // inner edge of band

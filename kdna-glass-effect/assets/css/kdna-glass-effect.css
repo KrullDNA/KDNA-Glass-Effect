@@ -24,8 +24,8 @@
 		transparent
 	);
 
-	-webkit-backdrop-filter: blur(var(--kdna-ge-blur, 8px));
-	backdrop-filter: var(--kdna-ge-filter-ref, url(#kdna-ge-filter)) blur(var(--kdna-ge-blur, 8px));
+	-webkit-backdrop-filter: blur(var(--kdna-ge-blur, 4px));
+	backdrop-filter: var(--kdna-ge-filter-ref, url(#kdna-ge-filter)) blur(var(--kdna-ge-blur, 4px));
 
 	border-style: solid;
 	border-color: var(--kdna-ge-border-color, rgba(255, 255, 255, 0.3));
@@ -43,16 +43,16 @@
 		inset 0 1px 0 0
 			color-mix(
 				in srgb,
-				var(--kdna-ge-rim-color, rgba(255, 255, 255, 0.6))
-					calc(var(--kdna-ge-rim-opacity, 0.6) * 100%),
+				var(--kdna-ge-rim-color, rgba(255, 255, 255, 0.3))
+					calc(var(--kdna-ge-rim-opacity, 0.3) * 100%),
 				transparent
 			),
 		inset 0 0 0 1px rgba(255, 255, 255, 0.18),
 		inset 0 0 28px 0
 			color-mix(
 				in srgb,
-				var(--kdna-ge-inner-color, rgba(255, 255, 255, 0.18))
-					calc(var(--kdna-ge-inner-opacity, 0.18) * 100%),
+				var(--kdna-ge-inner-color, rgba(255, 255, 255, 0.35))
+					calc(var(--kdna-ge-inner-opacity, 0.35) * 100%),
 				transparent
 			),
 		0 10px 30px 0 rgba(0, 0, 0, 0.12),
@@ -150,8 +150,8 @@
 @supports not (backdrop-filter: url(#kdna-ge-filter)) {
 	.kdna-ge {
 		background-color: rgba(255, 255, 255, 0.3);
-		-webkit-backdrop-filter: blur(var(--kdna-ge-blur, 8px));
-		backdrop-filter: blur(var(--kdna-ge-blur, 8px));
+		-webkit-backdrop-filter: blur(var(--kdna-ge-blur, 4px));
+		backdrop-filter: blur(var(--kdna-ge-blur, 4px));
 	}
 }
 
@@ -165,7 +165,7 @@
 		inset: 0;
 		z-index: -1;
 		border-radius: inherit;
-		filter: blur(var(--kdna-ge-blur, 8px));
+		filter: blur(var(--kdna-ge-blur, 4px));
 		background: inherit;
 	}
 }

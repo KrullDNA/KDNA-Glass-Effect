@@ -219,7 +219,7 @@ class KDNA_GE_Controls {
 				),
 				'default'   => array(
 					'unit' => 'px',
-					'size' => 0,
+					'size' => 0.05,
 				),
 				'selectors' => $this->build_selectors(
 					$selector_map,
@@ -242,7 +242,7 @@ class KDNA_GE_Controls {
 				),
 				'default'   => array(
 					'unit' => 'px',
-					'size' => 8,
+					'size' => 4,
 				),
 				'selectors' => $this->build_selectors(
 					$selector_map,
@@ -288,7 +288,7 @@ class KDNA_GE_Controls {
 				),
 				'default'   => array(
 					'unit' => 'px',
-					'size' => 45,
+					'size' => 70,
 				),
 				'description' => __( 'How far the edge-refraction band extends inward from the border, as a percentage of the element radius.', 'kdna-glass-effect' ),
 				'condition' => $condition,
@@ -304,7 +304,7 @@ class KDNA_GE_Controls {
 			array(
 				'label'   => __( 'Refraction Mode', 'kdna-glass-effect' ),
 				'type'    => Controls_Manager::SELECT,
-				'default' => 'outward',
+				'default' => 'dual',
 				'options' => array(
 					'outward' => __( 'Outward', 'kdna-glass-effect' ),
 					'inward'  => __( 'Inward (Lens)', 'kdna-glass-effect' ),
@@ -323,10 +323,10 @@ class KDNA_GE_Controls {
 				'size_units' => array( 'px', '%', 'em' ),
 				'default'    => array(
 					'unit'     => 'px',
-					'top'      => 24,
-					'right'    => 24,
-					'bottom'   => 24,
-					'left'     => 24,
+					'top'      => 20,
+					'right'    => 20,
+					'bottom'   => 20,
+					'left'     => 20,
 					'isLinked' => true,
 				),
 				'selectors'  => $this->build_selectors(
@@ -365,7 +365,7 @@ class KDNA_GE_Controls {
 				),
 				'default'   => array(
 					'unit' => 'px',
-					'size' => 0.6,
+					'size' => 0.3,
 				),
 				'selectors' => $this->build_selectors(
 					$selector_map,
@@ -403,7 +403,7 @@ class KDNA_GE_Controls {
 				),
 				'default'   => array(
 					'unit' => 'px',
-					'size' => 0.18,
+					'size' => 0.35,
 				),
 				'selectors' => $this->build_selectors(
 					$selector_map,
