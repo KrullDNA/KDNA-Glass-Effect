@@ -29,6 +29,8 @@ define( 'KDNA_GE_MIN_PHP_VERSION', '7.4' );
 
 require_once KDNA_GE_DIR . 'includes/class-kdna-ge-targets.php';
 require_once KDNA_GE_DIR . 'includes/class-kdna-ge-controls.php';
+require_once KDNA_GE_DIR . 'includes/class-kdna-ge-render.php';
+require_once KDNA_GE_DIR . 'includes/class-kdna-ge-assets.php';
 require_once KDNA_GE_DIR . 'includes/class-kdna-ge-plugin.php';
 
 /**

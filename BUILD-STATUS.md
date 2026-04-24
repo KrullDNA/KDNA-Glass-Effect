@@ -83,6 +83,97 @@ Per brief: no CSS file, no SVG filter, no front-end JS. Controls only.
 
 ---
 
-## Session 2 — Rendering and Visual Effect — Not started
+## Session 2 — Rendering and Visual Effect — COMPLETE (pending visual calibration)
+
+### Deliverables shipped
+
+- `includes/class-kdna-ge-render.php` — hooks
+  `elementor/frontend/{widget,container,section,column}/before_render` to
+  add the `kdna-ge` class (plus `kdna-ge--has-hover`,
+  `kdna-ge--has-active`, and `kdna-ge-preset-[name]`) to the widget
+  wrapper when Apply To resolves to the wrapper. For Button / Heading
+  inner-element targets, hooks `elementor/widget/render_content` and
+  regex-injects the same class list into `.elementor-button` or
+  `.elementor-heading-title` respectively. Flips
+  `KDNA_GE_Render::has_rendered()` the first time any glass widget
+  renders.
+- `includes/class-kdna-ge-assets.php` — registers the stylesheet at
+  `wp_enqueue_scripts` (priority 5) but defers the actual enqueue to
+  `wp_footer` priority 5, guarded by `has_rendered()`. At
+  `wp_footer` priority 20 emits the shared SVG filter
+  (`<filter id="kdna-ge-filter">`) with a pre-baked two-pass radial
+  displacement gradient as an inline `data:image/svg+xml` URL in
+  `feImage`. Also enqueues the stylesheet inside the Elementor editor
+  preview via `elementor/preview/enqueue_styles`.
+- `assets/css/kdna-glass-effect.css` — implements the `.kdna-ge` base
+  surface per Section 6 of the brief using CSS variables for every
+  tunable value, with `-webkit-backdrop-filter` alongside
+  `backdrop-filter` throughout. Ships four preset classes
+  (`kdna-ge-preset-clear`, `-frosted-light`, `-frosted-dark`,
+  `-tinted`) that override the variable cascade. `@supports`
+  fallbacks: one for browsers without SVG-URL backdrop-filter support
+  (Firefox) dropping the `url(#...)` and falling back to pure blur; a
+  second for browsers with no backdrop-filter at all, falling back to a
+  solid 30% white tint plus a blurred `::before` pseudo-element.
+- `kdna-glass-effect.php` — now requires the render and assets classes.
+- `includes/class-kdna-ge-plugin.php` — instantiates both
+  `KDNA_GE_Render` and `KDNA_GE_Assets` alongside `KDNA_GE_Controls` in
+  the `init()` boot sequence.
+
+### Rendered-flag lifecycle
+
+1. Elementor renders an element. `before_element_render()` checks glass
+   settings; if enabled, sets `$rendered = true` regardless of target.
+2. For inner-element targets, `filter_widget_content()` re-sets the flag
+   as a belt-and-braces measure.
+3. `wp_footer` priority 5 checks the flag — if false, stylesheet is
+   never enqueued.
+4. `wp_footer` priority 20 checks the flag — if false, SVG filter is
+   never emitted.
+
+### Acceptance check-list
+
+- [x] `@supports` fallback present for both SVG-URL and blur-less
+      browsers.
+- [x] `-webkit-backdrop-filter` paired with `backdrop-filter` on every
+      declaration.
+- [x] Preset classes implemented for Clear, Frosted Light, Frosted
+      Dark, Tinted.
+- [x] Hover / Active CSS variable cascade activates only when the
+      modifier classes are present (handled automatically by the
+      variable scoping — Session 1 conditions the control selectors on
+      the per-state enable switcher).
+- [x] No front-end JavaScript.
+- [x] PHP lint clean across all files.
+
+### Pending visual calibration (Session 3)
+
+The default values and displacement gradient stops are a sensible
+starting point but have **not yet been compared side-by-side against
+the Focus button reference image**. Session 3 is the calibration pass
+and should iterate on:
+
+- Displacement gradient stops in
+  `KDNA_GE_Assets::displacement_data_url()` (currently 0%/35% grey core
+  → 100% red/green split at the rim, with a screen-blend pass to mix
+  X and Y displacement).
+- `feDisplacementMap` `scale` attribute (currently fixed at 60 per the
+  brief's preferred lightweight option).
+- Box-shadow outer shadow Y-offset, blur, and opacity — currently
+  `0 8px 24px rgba(0,0,0,.18)` plus a tighter `0 2px 6px rgba(0,0,0,.10)`.
+- Inner rim/highlight inset spread values.
+- Default CSS variable values versus the reference pill.
+
+### Known notes / issues
+
+- Firefox does not support `url()` inside `backdrop-filter`, so the
+  first `@supports not` block kicks it into a pure-blur fallback. Edge
+  refraction will not be visible on Firefox.
+- The inner-element class injection relies on the widget rendering
+  exactly the expected class literal (`.elementor-button` /
+  `.elementor-heading-title`). Child themes or third-party overrides
+  that strip those classes will revert the effect to wrapper-only.
+
+---
 
 ## Session 3 — Polish, Editor Preview Quality, and Delivery — Not started

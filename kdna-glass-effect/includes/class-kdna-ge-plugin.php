@@ -34,6 +34,20 @@ final class KDNA_GE_Plugin {
 	private $controls = null;
 
 	/**
+	 * Render layer.
+	 *
+	 * @var KDNA_GE_Render|null
+	 */
+	private $render = null;
+
+	/**
+	 * Assets layer.
+	 *
+	 * @var KDNA_GE_Assets|null
+	 */
+	private $assets = null;
+
+	/**
 	 * Singleton accessor.
 	 *
 	 * @return KDNA_GE_Plugin
@@ -85,6 +99,12 @@ final class KDNA_GE_Plugin {
 
 		$this->controls = new KDNA_GE_Controls();
 		$this->controls->register_hooks();
+
+		$this->render = new KDNA_GE_Render();
+		$this->render->register_hooks();
+
+		$this->assets = new KDNA_GE_Assets();
+		$this->assets->register_hooks();
 	}
 
 	/**

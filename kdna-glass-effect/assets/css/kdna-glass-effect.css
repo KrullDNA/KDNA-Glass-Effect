@@ -1,0 +1,161 @@
+/*!
+ * KDNA Glass Effect
+ * Frontend + editor stylesheet. Implements the base glass surface, the
+ * four presets, hover/active overrides, and an @supports fallback for
+ * browsers without backdrop-filter SVG-filter support.
+ *
+ * All tunable values are driven by CSS variables scoped to the widget's
+ * target selector by Elementor's selectors mechanism, so this stylesheet
+ * stays small and shared across every glass widget on the page.
+ */
+
+/* -------------------------------------------------------------------------
+ * 1. Base glass surface
+ * ---------------------------------------------------------------------- */
+
+.kdna-ge {
+	position: relative;
+	isolation: isolate;
+
+	background-color: color-mix(
+		in srgb,
+		var(--kdna-ge-tint-color, rgba(255, 255, 255, 1))
+			calc(var(--kdna-ge-tint-opacity, 0) * 100%),
+		transparent
+	);
+
+	-webkit-backdrop-filter: blur(var(--kdna-ge-blur, 12px));
+	backdrop-filter: url(#kdna-ge-filter) blur(var(--kdna-ge-blur, 12px));
+
+	border: var(--kdna-ge-border-width, 1px) solid
+		var(--kdna-ge-border-color, rgba(255, 255, 255, 0.3));
+
+	box-shadow:
+		inset 0 1px 0 0
+			color-mix(
+				in srgb,
+				var(--kdna-ge-rim-color, rgba(255, 255, 255, 0.5))
+					calc(var(--kdna-ge-rim-opacity, 0.5) * 100%),
+				transparent
+			),
+		inset 0 0 20px 0
+			color-mix(
+				in srgb,
+				var(--kdna-ge-inner-color, rgba(255, 255, 255, 0.15))
+					calc(var(--kdna-ge-inner-opacity, 0.15) * 100%),
+				transparent
+			),
+		0 8px 24px 0 rgba(0, 0, 0, 0.18),
+		0 2px 6px 0 rgba(0, 0, 0, 0.10);
+
+	transition-property: background-color, box-shadow, border-color,
+		backdrop-filter, -webkit-backdrop-filter, transform;
+	transition-duration: var(--kdna-ge-transition, 250ms);
+	transition-timing-function: ease;
+}
+
+/* -------------------------------------------------------------------------
+ * 2. Presets
+ *    Non-custom presets override the CSS variables to produce a look.
+ * ---------------------------------------------------------------------- */
+
+.kdna-ge-preset-clear {
+	--kdna-ge-tint-color: rgba(255, 255, 255, 1);
+	--kdna-ge-tint-opacity: 0;
+	--kdna-ge-blur: 10px;
+	--kdna-ge-rim-color: rgba(255, 255, 255, 0.55);
+	--kdna-ge-rim-opacity: 0.55;
+	--kdna-ge-inner-color: rgba(255, 255, 255, 0.12);
+	--kdna-ge-inner-opacity: 0.12;
+	--kdna-ge-border-color: rgba(255, 255, 255, 0.28);
+	--kdna-ge-border-width: 1px;
+}
+
+.kdna-ge-preset-frosted-light {
+	--kdna-ge-tint-color: rgba(255, 255, 255, 1);
+	--kdna-ge-tint-opacity: 0.35;
+	--kdna-ge-blur: 18px;
+	--kdna-ge-rim-color: rgba(255, 255, 255, 0.6);
+	--kdna-ge-rim-opacity: 0.6;
+	--kdna-ge-inner-color: rgba(255, 255, 255, 0.22);
+	--kdna-ge-inner-opacity: 0.22;
+	--kdna-ge-border-color: rgba(255, 255, 255, 0.4);
+	--kdna-ge-border-width: 1px;
+}
+
+.kdna-ge-preset-frosted-dark {
+	--kdna-ge-tint-color: rgba(20, 20, 24, 1);
+	--kdna-ge-tint-opacity: 0.35;
+	--kdna-ge-blur: 18px;
+	--kdna-ge-rim-color: rgba(255, 255, 255, 0.35);
+	--kdna-ge-rim-opacity: 0.35;
+	--kdna-ge-inner-color: rgba(255, 255, 255, 0.08);
+	--kdna-ge-inner-opacity: 0.08;
+	--kdna-ge-border-color: rgba(255, 255, 255, 0.18);
+	--kdna-ge-border-width: 1px;
+}
+
+.kdna-ge-preset-tinted {
+	--kdna-ge-tint-color: rgba(255, 120, 180, 1);
+	--kdna-ge-tint-opacity: 0.22;
+	--kdna-ge-blur: 14px;
+	--kdna-ge-rim-color: rgba(255, 255, 255, 0.5);
+	--kdna-ge-rim-opacity: 0.5;
+	--kdna-ge-inner-color: rgba(255, 255, 255, 0.15);
+	--kdna-ge-inner-opacity: 0.15;
+	--kdna-ge-border-color: rgba(255, 255, 255, 0.3);
+	--kdna-ge-border-width: 1px;
+}
+
+/* -------------------------------------------------------------------------
+ * 3. Hover / Active state overrides
+ *    The :hover / :active CSS variable declarations are written by
+ *    Elementor via the per-widget selectors parameter. These rules here
+ *    only need to exist if the element has opted in via the modifier
+ *    classes, otherwise :hover / :active still resolve to the base
+ *    variables automatically (the fallbacks in var() guarantee this).
+ *
+ *    The modifier classes are used as a signal that the state overrides
+ *    are in effect; no additional declarations are needed here because
+ *    the variable cascade does the work. The empty rulesets below are
+ *    retained as documentation anchors and can also be used to force a
+ *    style recalc / repaint if needed.
+ * ---------------------------------------------------------------------- */
+
+.kdna-ge--has-hover:hover {
+	/* variables for :hover are emitted via Elementor selectors */
+}
+
+.kdna-ge--has-active:active {
+	/* variables for :active are emitted via Elementor selectors */
+}
+
+/* -------------------------------------------------------------------------
+ * 4. Fallback for browsers without backdrop-filter SVG-URL support
+ *    Firefox currently does not support url() inside backdrop-filter.
+ *    We detect the stricter capability and fall back to a solid
+ *    semi-transparent tint plus a standard blur on a ::before pseudo.
+ * ---------------------------------------------------------------------- */
+
+@supports not (backdrop-filter: url(#kdna-ge-filter)) {
+	.kdna-ge {
+		background-color: rgba(255, 255, 255, 0.3);
+		-webkit-backdrop-filter: blur(var(--kdna-ge-blur, 12px));
+		backdrop-filter: blur(var(--kdna-ge-blur, 12px));
+	}
+}
+
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+	.kdna-ge {
+		background-color: rgba(255, 255, 255, 0.3);
+	}
+	.kdna-ge::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		border-radius: inherit;
+		filter: blur(var(--kdna-ge-blur, 12px));
+		background: inherit;
+	}
+}
